@@ -1,13 +1,10 @@
 import numpy as np
 from scipy.interpolate import interp1d
 from scipy.ndimage import gaussian_filter1d
-from sklearn.decomposition import PCA
 from scipy.optimize import curve_fit
-from sklearn.linear_model import LinearRegression
-
-from sklearn.decomposition import TruncatedSVD as SVD
 
 def fit_asymptote(x, y, xall, fitexp=False):
+    from sklearn.linear_model import LinearRegression
     ''' fit y = alpha + beta / sqrt(x)'''
     xi = x.copy()**-0.5
     if xi.ndim < 2:
@@ -51,7 +48,6 @@ def asymp2(x, alpha, beta, gamma, t1, t2):
     y = alpha + beta / x[0]**t1 + gamma / x[1]**t2
     return y
 
-
 def discrimination_threshold(P, x):
     P = (P + 1-P[::-1])/2
     par0 = np.array([5])
@@ -62,74 +58,6 @@ def discrimination_threshold(P, x):
 # psychometric function
 def logistic(x, beta):
     return 1. / (1 + np.exp( -x / beta ))
-
-def upsampling_mat(ntot, upfactor = 100, sig = 1):
-    xs = np.arange(0, ntot)
-    ys = np.linspace(0, ntot, 1+upfactor*ntot)
-    ys = ys[:-1]
-    ds = np.abs(xs[np.newaxis,:] - xs[:,np.newaxis])
-    ds = np.minimum(ds, ntot-ds)
-    Kxx = np.exp(-ds**2 / (2*sig**2) )
-    ds = np.abs(ys[np.newaxis,:] - xs[:,np.newaxis])
-    ds = np.minimum(ds, ntot-ds)
-    Kyx = np.exp(-ds**2 / (2*sig**2) )
-    Kup = Kyx.T @ np.linalg.inv(Kxx)
-
-    return Kup
-
-def binned(x, y, bins):
-    ''' bin x and compute y in each bin, and standard error'''
-    nx, be = np.histogram(x, bins=bins)
-    ny, be = np.histogram(x, bins=bins, weights=y)
-    ne, be = np.histogram(x, bins=bins, weights=y**2)
-    ny /= nx
-    serr = (ne/nx - ny**2)**0.5
-    serr /= (nx-1)**0.5
-    tbins = bins[:-1] + (bins[1]-bins[0])/2
-    return ny, serr, tbins
-
-def resample_frames(data, torig, tout):
-    ''' resample data at times torig at times tout '''
-    ''' data is components x time '''
-    fs = torig.size / tout.size # relative sampling rate
-    data = gaussian_filter1d(data, np.ceil(fs/4), axis=1)
-    f = interp1d(torig, data, kind='linear', axis=-1, fill_value='extrapolate')
-    dout = f(tout)
-    return dout
-
-def compile_resp(dat, nskip=4, npc=0, zscore=True):
-    istim = dat['istim']
-    # split stims into test and train
-    itest = np.zeros((istim.size,), np.bool)
-    itest[::nskip] = 1
-    itrain = np.ones((istim.size,), np.bool)
-    itrain[itest] = 0
-    itrain = itrain.nonzero()[0]
-    itest = np.nonzero(itest)[0]
-    if zscore:
-        # subtract off spont PCs
-        sresp = (dat['sresp'].copy() - dat['mean_spont'][:,np.newaxis]) / dat['std_spont'][:,np.newaxis]
-        if npc > 0:
-            sresp = sresp - dat['u_spont'][:,:npc] @ (dat['u_spont'][:,:npc].T @ sresp)
-        sresp = sresp[:,:istim.size]
-        # zscore sresp across stimuli (so each neuron has mean 0 / std 1 responses)
-        ssub0 = sresp.mean(axis=1)
-        sstd0 = sresp.std(axis=1) + 1e-6
-        sresp = (sresp - ssub0[:,np.newaxis]) / sstd0[:,np.newaxis]
-    else:
-        sresp = dat['sresp'].copy()
-    return sresp, istim, itrain, itest
-
-def stripe_split(ypos, nstrips):
-    ymax   = np.max(ypos)
-    nby    = np.floor(ymax / nstrips)
-    ytrain = np.arange(0,nstrips,2,int)[:,np.newaxis] * nby + np.arange(0,nby-100/nstrips,1,int)[np.newaxis,:]
-    ytrain = ytrain.flatten()
-    n1     = (ypos[:,np.newaxis] == ytrain[np.newaxis,:]).sum(axis=1).nonzero()[0]
-    ytest  = np.arange(1,nstrips,2,int)[:,np.newaxis] * nby + np.arange(0,nby-100/nstrips,1,int)[np.newaxis,:]
-    ytest  = ytest.flatten()
-    n2     = (ypos[:,np.newaxis] == ytest[np.newaxis,:]).sum(axis=1).nonzero()[0]
-    return n1, n2
 
 def get_powerlaw(ss, trange):
     logss = np.log(np.abs(ss))
@@ -206,6 +134,7 @@ def cvPCA(X):
     return ss
 
 def SVCA(X):
+    from sklearn.decomposition import PCA
     # compute power law
     # SVCA
     #X -= X.mean(axis=1)[:,np.newaxis]

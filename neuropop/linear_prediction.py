@@ -152,6 +152,8 @@ def prediction_wrapper(X, Y, tcam=None, tneural=None, U=None, spks=None, delay=0
 
     if tcam is not None and tneural is not None:
         X_ds = resample_data(X, tcam, tneural, crop='linspace')
+    else:
+        X_ds = X
 
     if delay < 0:
         Ys = np.vstack((Y[-delay:], np.tile(Y[[-1],:], (-delay,1))))

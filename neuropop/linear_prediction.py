@@ -1,8 +1,8 @@
 import numpy as np 
 import torch
 
-from utils import compute_varexp, bin1d, resample_data
-from split_data import split_traintest
+from neuropop.utils import compute_varexp, bin1d, resample_data
+from neuropop.split_data import split_traintest
 
 
 def ridge_regression(X, Y, lam=0):

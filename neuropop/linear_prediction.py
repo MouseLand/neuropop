@@ -69,7 +69,7 @@ def reduced_rank_regression(X, Y, rank=None, lam=0):
     return A, B
 
 
-def linear_prediction(X, Y, rank=None, lam=0, allranks=True, itrain=None, itest=None, tbin=None, device=torch.device("cuda")):
+def linear_prediction(X, Y, rank=None, lam=0, allranks=True, itrain=None, itest=None, tbin=None, device=torch.device("cpu")):
     """predict Y from X using regularized regression
     *** user needs to subtract mean from X and Y before predicting ***
     
@@ -144,7 +144,7 @@ def linear_prediction(X, Y, rank=None, lam=0, allranks=True, itrain=None, itest=
     return (Y_pred_test.cpu().numpy(), varexp.squeeze(), itest, 
             A.cpu().numpy(), B.cpu().numpy(), varexpf.squeeze(), corrf.squeeze())
 
-def prediction_wrapper(X, Y, tcam=None, tneural=None, U=None, spks=None, delay=0, tbin=None, rank=32):
+def prediction_wrapper(X, Y, tcam=None, tneural=None, U=None, spks=None, delay=0, tbin=None, rank=32, device=torch.device('cuda')):
     """ predict neurons or neural PCs Y and compute varexp for Y and/or spks"""
     
     X -= X.mean(axis=0)
@@ -159,7 +159,7 @@ def prediction_wrapper(X, Y, tcam=None, tneural=None, U=None, spks=None, delay=0
         X_ds = np.vstack((X_ds[delay:], np.tile(X_ds[[-1],:], (delay,1))))
         Ys = Y
     
-    Y_pred_test, ve_test, itest, A, B = linear_prediction(X_ds, Ys, rank=rank, lam=1e-6, tbin=tbin)[:5]
+    Y_pred_test, ve_test, itest, A, B = linear_prediction(X_ds, Ys, rank=rank, lam=1e-6, tbin=tbin, device=device)[:5]
     varexp = ve_test
     # return Y_pred_test at specified rank
     Y_pred_test = X_ds[itest] @ B[:,:rank] @ A[:,:rank].T

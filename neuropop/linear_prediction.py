@@ -18,9 +18,9 @@ def ridge_regression(X, Y, lam=0):
     --------
     A : 2D array - prediction matrix 1 (n_predictors, rank)
     """
-    CXX = (X.T @ X + lam * np.eye(X.shape[1])) / X.shape[0]
+    CXX = (X.T @ X + lam * np.eye(X.shape[1], dtype="float32")) / X.shape[0]
     CXY = (X.T @ Y) / X.shape[0]
-    A = torch.linalg.solve(CXX, CXY)
+    A = torch.linalg.solve(CXX, CXY).T
     return A
 
 def reduced_rank_regression(X, Y, rank=None, lam=0):
@@ -121,6 +121,7 @@ def linear_prediction(X, Y, rank=None, lam=0, allranks=True, itrain=None, itest=
         A = ridge_regression(X[itrain], Y[itrain], lam=lam)
         B = None
         allranks = False
+        rank = 1
 
     corrf = np.zeros((rank, n_feats))
     varexpf = np.zeros((rank, n_feats))
@@ -141,8 +142,10 @@ def linear_prediction(X, Y, rank=None, lam=0, allranks=True, itrain=None, itest=
             varexp[r, 1] = compute_varexp(bin1d(Y[itest], tbin).flatten(), bin1d(Y_pred_test, tbin).flatten()).cpu().numpy()
     if not allranks:
         varexp, varexpf, corrf = varexp[-1:], varexpf[-1:], corrf[-1:]
+    if B is not None:
+        B = B.cpu().numpy()
     return (Y_pred_test.cpu().numpy(), varexp.squeeze(), itest, 
-            A.cpu().numpy(), B.cpu().numpy(), varexpf.squeeze(), corrf.squeeze())
+            A.cpu().numpy(), B, varexpf.squeeze(), corrf.squeeze())
 
 def prediction_wrapper(X, Y, tcam=None, tneural=None, U=None, spks=None, delay=0, tbin=None, rank=32, device=torch.device('cuda')):
     """ predict neurons or neural PCs Y and compute varexp for Y and/or spks"""

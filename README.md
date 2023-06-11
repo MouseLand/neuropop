@@ -19,8 +19,11 @@ Copyright (C) 2023 Howard Hughes Medical Institute Janelia Research Campus, Cars
 This module contains code for dimensionality estimation methods for neural data:
 
 * Cross-validated PCA (described in [[1]](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6642054/)) is for estimating the dimensionality of neural stimulus responses where each stimulus is shown at least twice. Divide your data into two repeats -- a matrix of 2 x stimuli x neurons, and input it into the function `cvPCA` to obtain the cross-validated eigenspectrum. Note that each repeat can be the average of several stimulus responses (e.g. 5-10 each). You can then use the `get_powerlaw` function to estimate the exponent of the decay of the eigenspectrum. If you use these functions please cite [[1]](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6642054/).
+<img src="figures/cvPCA.PNG" width="600" />
 
 * Shared variance components analysis (described in [[2]](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6525101/)) is for estimating the dimensionality of neural activity that is shared across neurons (excluding single neuron variability). This method divides the neurons in half and the timepoints in half into training and testing. Then it computes the principal components of the covariance between the two neural halves on the training timepoints, and then computing the variance of those components on the testing timepoints. Take your neural data as a matrix of neurons x time and input it into the function `SVCA` to obtain the variance of each component of the covariance matrix on the test set `scov` (this had a powerlaw decay of ~1.1 in [[2]](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6525101/)). The function also returns the average variance of each component in each neural half `varcov`. If you use this function please cite [[2]](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6525101/).
+<img src="figures/SVCA.PNG" width="200" />
+
 
 ## [peer_prediction.py](neuropop/peer_prediction.py)
 
@@ -53,6 +56,8 @@ varexp, varexp_neurons, spks_pred_test0, itest, model = network_wrapper(x, Y, tc
 ```
 
 If you use these functions please cite [[3]](https://www.biorxiv.org/content/10.1101/2022.11.03.515121v1).
+
+<img src="figures/nn_prediction.PNG" width="600" />
 
 ## [future_prediction.py](neuropop/future_prediction.py)
 

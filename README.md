@@ -1,7 +1,7 @@
 # neuropop
 analysis tools for large-scale neural recordings
 
-Copyright (C) 2023 Howard Hughes Medical Institute Janelia Research Campus, Carsen Stringer and Marius Pachitariu
+Copyright (C) 2023 Howard Hughes Medical Institute Janelia Research Campus, the labs of Carsen Stringer and Marius Pachitariu
 
 **This code is licensed under GPL v3 (no redistribution without credit, and no redistribution in private repos, see [license](LICENSE) for more details).**
 

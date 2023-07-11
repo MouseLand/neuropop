@@ -17,13 +17,20 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="neuropop",
-    version="0.1.3",
+    use_scm_version=True,
     author="Marius Pachitariu and Carsen Stringer",
     author_email="stringerc@janelia.hhmi.org",
     description="analysis tools for neural population recordings",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/MouseLand/rastermap",
+    url="https://github.com/MouseLand/neuropop",
+    setup_requires=[
+        'pytest-runner',
+        'setuptools_scm',
+    ],
+    tests_require=[
+        'pytest'
+    ],
     packages=setuptools.find_packages(),
 	install_requires = install_deps,
     include_package_data=True,

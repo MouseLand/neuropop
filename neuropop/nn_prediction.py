@@ -1,3 +1,6 @@
+"""
+Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Marius Pachitariu.
+"""
 import sys, time
 import numpy as np
 import torch
@@ -8,7 +11,7 @@ from neuropop.filtering import gabor_wavelet
 from neuropop.utils import bin1d, compute_varexp
 from neuropop.split_data import split_data
 
-def network_wrapper(x, Y, tcam, tneural, U, spks, delay=-1,
+def network_wrapper(x, Y, tcam, tneural, spks, U, delay=-1,
                         verbose=False, per_pt=False, device=torch.device('cuda')):
     x = (x - x.mean(axis=0)) / x[:,0].std(axis=0)
     
@@ -105,8 +108,9 @@ class Core(nn.Module):
                                                                  ))
 
         # latent linear layer
-        n_med = n_med if n_layers > 1 else self.n_filt * self.n_kp
-        self.features.add_module('latent', nn.Sequential(nn.Linear(n_med, n_latents),
+        if self.n_latents > 0:
+            n_med = n_med if n_layers > 1 else self.n_filt * self.n_kp
+            self.features.add_module('latent', nn.Sequential(nn.Linear(n_med, n_latents),
                                                         ))
         
     def wavelets(self, x):
@@ -143,12 +147,15 @@ class Core(nn.Module):
         wavelets = wavelets.reshape(-1, wavelets.shape[-1])
         
         # latent layer
-        latents = self.features[-1](wavelets)
-        latents = latents.reshape(x.shape[0], -1, latents.shape[-1])
-        if self.relu_latents:
-            latents = F.relu(latents)
-        latents = latents.reshape(-1, latents.shape[-1])
-        return latents
+        if self.n_latents > 0:
+            latents = self.features[-1](wavelets)
+            latents = latents.reshape(x.shape[0], -1, latents.shape[-1])
+            if self.relu_latents:
+                latents = F.relu(latents)
+            latents = latents.reshape(-1, latents.shape[-1])
+            return latents
+        else:
+            return wavelets
 
 class Readout(nn.Module):
     """ linear layer from latents to neural PCs or neurons """
@@ -186,8 +193,9 @@ class PredictionNetwork(nn.Module):
         self.core = Core(n_in=n_in, n_kp=n_kp, n_filt=n_filt, kernel_size=kernel_size, 
                          n_layers=n_core_layers, n_med=n_med, n_latents=n_latents, same_conv=same_conv,
                          identity=identity, relu_wavelets=relu_wavelets, relu_latents=relu_latents)
-        self.readout = Readout(n_animals=n_animals, n_latents=n_latents, n_layers=n_out_layers, 
-                                n_out=n_out)
+        self.readout = Readout(n_animals=n_animals, 
+                               n_latents=n_latents if n_latents > 0 else n_filt*n_kp, 
+                               n_layers=n_out_layers, n_out=n_out)
 
     def forward(self, x, sample_inds=None, animal_id=0):
         latents = self.core(x)
@@ -199,7 +207,7 @@ class PredictionNetwork(nn.Module):
     
     def train_model(self, X_dat, Y_dat, tcam_list, tneural_list, 
                         delay=-1, smoothing_penalty=0.5, 
-                    n_iter=300, learning_rate=5e-4, annealing_steps=2,
+                    n_iter=300, learning_rate=1e-3, annealing_steps=2,
                     weight_decay=1e-4, device=torch.device('cuda'), 
                     split_time=False, verbose=False):
         """ train behavior -> neural model using multiple animals """
@@ -280,6 +288,46 @@ class PredictionNetwork(nn.Module):
             return y_pred_all[0], ve_all[0], itest[0]
         else:
             return y_pred_all, ve_all, itest
+
+class MaxStimModel(nn.Module):
+    """ keypoint to neural PCs or activity model """
+    def __init__(self, model):
+        super().__init__()
+        self.model = model
+
+    def forward(self, x, u=None, sample_inds=None):
+        out = self.model(x, sample_inds)[0]
+        # out is neurons x 1 x n_out
+        if u is not None:
+            out = (out * u.unsqueeze(1)).sum(axis=-1)
+        return out 
+
+    def train_batch(self, u=None, learning_rate=1e-1, n_iter=200):
+        kernel_size = 2*self.model.core.features.wavelet0.kernel_size[0]
+        nf = self.model.core.n_in
+        device = self.model.core.features.wavelet0.weight.device
+        n_out = self.model.readout.linear[0].weight.shape[0]
+        nb = u.shape[0] if u is not None else n_out
+        # take a single timepoint from each batch
+        sample_inds = kernel_size * torch.from_numpy(np.arange(0,nb)).to(device) 
+        sample_inds += kernel_size//2
+        # each batch is a max stim
+        xr = 0.1 * torch.randn((nb, kernel_size, nf), device=device)
+        xr.requires_grad = True
+        optimizer = torch.optim.Adam([xr], lr=learning_rate, weight_decay=0)
+        for epoch in range(n_iter):
+            losses = 0
+            xr2 = xr / (1e-3 + (xr**2).mean(axis=(1,2), keepdims=True)**0.5)
+            y = self.forward(xr2, u=u, sample_inds=sample_inds)
+            loss = (-y).mean()
+            optimizer.zero_grad() 
+            loss.backward()
+            optimizer.step()
+            losses+=loss.item()
+            if epoch%50==0 or epoch==n_iter-1:
+                print(epoch, losses)
+        return xr2
+
 
 def train_model_test(model, X, Y, tcam, tneural, sgd=False, lam=1e-3, 
                    n_iter=600, learning_rate=5e-4, fix_model=True,

@@ -1,3 +1,6 @@
+"""
+Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Marius Pachitariu.
+"""
 import numpy as np 
 import torch
 from torch.nn.functional import conv1d

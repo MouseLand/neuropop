@@ -1,4 +1,8 @@
+"""
+Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Marius Pachitariu.
+"""
 import numpy as np
+from scipy.stats import zscore
 
 def nanmedian_filter(x, win=7):
     """ nanmedian filter array along last axis"""
@@ -96,35 +100,3 @@ def get_gabor_transform(data, freqs=np.geomspace(1, 10, 5)):
             gabor_transform[:,2*k,j] = filt0
             gabor_transform[:,2*k+1,j] = (filt0**2 + filt1**2)**0.5
     return gabor_transform
-
-def get_wavelet_transform(data, wavelet_func=['gaus1','mexh'], widths=np.geomspace(1,60,5)):
-    """ data is time points by features """
-    import pywt
-    n_wavelets = len(wavelet_func)
-    n_widths = len(widths)
-    n_time, n_features = data.shape
-    wavelet_transform = np.zeros((n_time, n_widths, n_wavelets, n_features), 'float32')
-    for k, wave_type in enumerate(wavelet_func):
-        for i in range(data.shape[1]):
-            coef = pywt.cwt(data[:,i] - data[:,i].mean(), widths, wave_type)[0].T
-            wavelet_transform[:, :, k, i] = coef
-    return wavelet_transform
-
-def compute_wavelet_transforms(data, n_comps=3):
-    from sklearn.decomposition import PCA
-    wt = get_wavelet_transform(data)
-    gt = get_gabor_transform(data)
-    
-    wgt_pcs = np.zeros((gt.shape[0], n_comps*3, gt.shape[-1]), 'float32')
-    for j in range(gt.shape[-1]):
-        wt_j = wt[:,:,:,j]
-        wt_j /= wt_j[:,0].std(axis=0)
-        #wt_j = wt_j.reshape(wt_j.shape[0], -1)
-        gt_j = gt[:,:,j]
-        gt_j /= gt_j[:,0].std(axis=0)
-        wgt_pcs[:,:3,j] = PCA(n_components=n_comps).fit_transform(gt_j)
-        #gt_j @ 
-        wgt_pcs[:,3:6,j] = PCA(n_components=n_comps).fit_transform(wt_j[:,:,0])
-        wgt_pcs[:,6:,j] = PCA(n_components=n_comps).fit_transform(wt_j[:,:,1])
-        #wgt_pcs[:,:,j] = PCA(n_components=9).fit_transform(np.hstack((gt_j, wt_j[:,:,0], wt_j[:,:,1])))
-    return wgt_pcs

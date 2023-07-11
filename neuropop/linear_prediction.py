@@ -1,3 +1,6 @@
+"""
+Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Marius Pachitariu.
+"""
 import numpy as np 
 import torch
 
@@ -18,9 +21,16 @@ def ridge_regression(X, Y, lam=0):
     --------
     A : 2D array - prediction matrix 1 (n_predictors, rank)
     """
-    CXX = (X.T @ X + lam * np.eye(X.shape[1], dtype="float32")) / X.shape[0]
+    if torch.is_tensor(X):
+        eyem = torch.eye(X.shape[1], dtype=torch.float, device=X.device)
+        solve = torch.linalg.solve
+    else:
+        eyem = np.eye(X.shape[1], dtype="float32")
+        solve = np.linalg.solve
+
+    CXX = (X.T @ X + lam * eyem) / X.shape[0]
     CXY = (X.T @ Y) / X.shape[0]
-    A = torch.linalg.solve(CXX, CXY).T
+    A = solve(CXX, CXY).T
     return A
 
 def reduced_rank_regression(X, Y, rank=None, lam=0):
@@ -147,7 +157,8 @@ def linear_prediction(X, Y, rank=None, lam=0, allranks=True, itrain=None, itest=
     return (Y_pred_test.cpu().numpy(), varexp.squeeze(), itest, 
             A.cpu().numpy(), B, varexpf.squeeze(), corrf.squeeze())
 
-def prediction_wrapper(X, Y, tcam=None, tneural=None, U=None, spks=None, delay=0, tbin=None, rank=32, device=torch.device('cuda')):
+def prediction_wrapper(X, Y, tcam=None, tneural=None, U=None, spks=None, 
+                    delay=0, tbin=None, rank=None, lam=0, device=torch.device('cuda')):
     """ predict neurons or neural PCs Y and compute varexp for Y and/or spks"""
     
     X -= X.mean(axis=0)
@@ -164,11 +175,15 @@ def prediction_wrapper(X, Y, tcam=None, tneural=None, U=None, spks=None, delay=0
         X_ds = np.vstack((X_ds[delay:], np.tile(X_ds[[-1],:], (delay,1))))
         Ys = Y
     
-    Y_pred_test, ve_test, itest, A, B = linear_prediction(X_ds, Ys, rank=rank, lam=1e-6, tbin=tbin, device=device)[:5]
+    Y_pred_test, ve_test, itest, A, B = linear_prediction(X_ds, Ys, rank=rank, 
+                                                    lam=lam, tbin=tbin, device=device)[:5]
     varexp = ve_test
     # return Y_pred_test at specified rank
-    Y_pred_test = X_ds[itest] @ B[:,:rank] @ A[:,:rank].T
-
+    if B is not None:
+        Y_pred_test = X[itest] @ B[:, :rank] @ A[:, :rank].T
+    else:
+        Y_pred_test = X[itest] @ A.T
+    
     # single neuron prediction
     if U is not None and spks is not None:
         spks_pred_test = Y_pred_test @ U.T 
@@ -183,7 +198,7 @@ def prediction_wrapper(X, Y, tcam=None, tneural=None, U=None, spks=None, delay=0
         
         return varexp.squeeze(), varexp_neurons.squeeze(), spks_pred_test0, itest
     else:
-        return varexp.squeeze(), None, None, itest
+        return varexp.squeeze(), None, Y_pred_test, itest
 
 
 def CCA(x1, x2, lam=1):

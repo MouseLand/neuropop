@@ -1,4 +1,8 @@
+"""
+Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Marius Pachitariu.
+"""
 import numpy as np 
+from scipy.interpolate import interp1d
 import torch
 
 def split_traintest(n_t, frac=0.25, pad=3, split_time=False):
@@ -22,8 +26,8 @@ def split_traintest(n_t, frac=0.25, pad=3, split_time=False):
     itest: 2D int array
         times in test set, arranged in chunks
     """
-    #usu want 20 segs, but might not have enough frames for that
-    n_segs = int(min(20, n_t/4)) 
+    #usu want 10 segs, but might not have enough frames for that
+    n_segs = int(min(10, n_t/4)) 
     n_len = int(np.floor(n_t/n_segs))
     inds_train = np.linspace(0, n_t - n_len - 5, n_segs).astype(int)
     if not split_time:

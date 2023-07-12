@@ -29,7 +29,8 @@ setuptools.setup(
         'setuptools_scm',
     ],
     tests_require=[
-        'pytest'
+        'pytest',
+        'tqdm'
     ],
     packages=setuptools.find_packages(),
 	install_requires = install_deps,

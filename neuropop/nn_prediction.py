@@ -236,7 +236,10 @@ class PredictionNetwork(nn.Module):
         c_batches = np.cumsum(n_batches)
         n_batches = n_batches.sum()   
 
-        anneal_epochs = n_iter - 50*np.arange(1, annealing_steps+1)
+        if n_iter > 199:
+            anneal_epochs = n_iter - 50*np.arange(1, annealing_steps+1)
+        else:
+            anneal_epochs = [-1]
 
         ### optimize all parameters with SGD
         for epoch in range(n_iter):

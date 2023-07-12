@@ -25,9 +25,8 @@ def ridge_regression(X, Y, lam=0):
         eyem = torch.eye(X.shape[1], dtype=torch.float, device=X.device)
         solve = torch.linalg.solve
     else:
-        eyem = np.eye(X.shape[1], dtype="float32")
+        eyem = np.eye(X.shape[1], dtype=X.dtype)
         solve = np.linalg.solve
-
     CXX = (X.T @ X + lam * eyem) / X.shape[0]
     CXY = (X.T @ Y) / X.shape[0]
     A = solve(CXX, CXY).T
@@ -119,8 +118,8 @@ def linear_prediction(X, Y, rank=None, lam=0, allranks=True, itrain=None, itest=
     if itrain is None and itest is None:
         itrain, itest = split_traintest(n_t)
     itrain, itest = itrain.flatten(), itest.flatten()
-    X = torch.from_numpy(X).to(device)
-    Y = torch.from_numpy(Y).to(device)
+    X = torch.from_numpy(X).float().to(device)
+    Y = torch.from_numpy(Y).float().to(device)
     if rank is not None:
         min_dim = min(Y.shape[1], min(X.shape[0], X.shape[1])) - 1
         rank = min(min_dim, rank)

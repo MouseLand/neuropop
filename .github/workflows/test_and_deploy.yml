@@ -35,8 +35,7 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install setuptools tox tox-gh-actions
-          pip install pytest tqdm
-
+          
       - name: Test with tox
         run: tox
         env:

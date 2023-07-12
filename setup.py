@@ -1,7 +1,7 @@
 import setuptools
 
 install_deps = ['numpy>=1.20.0', 'scipy', 'natsort',
-                'torch>=1.6']
+                'torch>=1.6', 'scikit-learn']
 
 try:
     import torch

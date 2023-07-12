@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from neuropop import dimensionality
 
-def test_nnpred(test_file):
+def test_dim(test_file):
     dat = np.load(test_file)
     spks = dat["spks"]
     scov, varcov = dimensionality.SVCA(spks)

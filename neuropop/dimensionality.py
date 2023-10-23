@@ -124,6 +124,7 @@ def scvPCA(A, B):
 
 def cvPCA(X):
     ''' X is 2 x stimuli x neurons '''
+    from sklearn.decomposition import PCA
     nr = X.shape[0]
     pca = PCA(n_components=min(1024, X.shape[1])).fit(X[0])
     #u = pca.components_.T
